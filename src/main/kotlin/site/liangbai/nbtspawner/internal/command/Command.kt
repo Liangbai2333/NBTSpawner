@@ -42,8 +42,8 @@ internal object Command {
                         
                         
                         
-                        &c&l       这里是个人NBT编辑界面
-                        &b&l             请翻页
+                        &c&l         这里是个人NBT编辑界面
+                        &b&l         请翻页
                         
                         
                         
@@ -52,10 +52,10 @@ internal object Command {
 
                 val keys = factory.keys()
 
-                loop@ for (i in keys.indices step 10) {
+                loop@ for (i in keys.indices step 7) {
                     val message = TellrawJson()
 
-                    for (j in i until i + 10) {
+                    for (j in i until i + 7) {
                         if (j >= keys.size) break@loop
                         message.also {
                             val key = keys[j]
