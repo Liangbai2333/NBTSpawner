@@ -79,7 +79,7 @@ class NMSImpl : NMS() {
     override fun <DATA> unwrappedAsValue(target: Any): DATA? = when (target) {
         is NBTTagCompound, is NBTTagList -> findFactory(target)
         else -> try {
-            target.getProperty<DATA>("list")
+            target.getProperty<DATA>("data")
         } catch (e: Throwable) {
             target as DATA
         }
