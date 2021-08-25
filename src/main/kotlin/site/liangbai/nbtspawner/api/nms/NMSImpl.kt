@@ -75,27 +75,21 @@ class NMSImpl : NMS() {
         else -> throw IllegalArgumentException("could not access the type ${obj::class.java.simpleName}")
     } as FAC
 
-    override fun <DATA> unwrappedAsValue(any: Any): DATA? {
-        @Suppress("UNCHECKED_CAST")
-        fun getListOrSelf(any: Any): DATA? {
-            return try {
-                any.getProperty<DATA>("list")
-            } catch (e: Throwable) {
-                any as DATA
-            }
-        }
-
-        return try {
-            any.getProperty<DATA>("data")
+    @Suppress("UNCHECKED_CAST")
+    override fun <DATA> unwrappedAsValue(target: Any): DATA? = when (target) {
+        is NBTTagCompound, is NBTTagList -> findFactory(target)
+        else -> try {
+            target.getProperty<DATA>("list")
         } catch (e: Throwable) {
-            getListOrSelf(any)
+            target as DATA
         }
     }
 
     @Throws(IllegalArgumentException::class)
-    override fun wrappedAsNBTBase(any: Any): Any {
-        return any.run { when (this) {
+    override fun wrappedAsNBTBase(value: Any): Any {
+        return value.run { when (this) {
             is NBTBase -> return this
+            is AbstractNBTFactory<*> -> this.handle
             is String -> NBTTagString.a(this)
             is Boolean -> NBTTagByte.a(this)
             is Byte -> NBTTagByte.a(this)

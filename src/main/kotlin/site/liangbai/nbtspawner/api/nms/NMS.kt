@@ -36,9 +36,9 @@ abstract class NMS {
 
     abstract fun <FAC : AbstractNBTFactory<*>> findFactory(obj: Any): FAC
 
-    abstract fun <DATA> unwrappedAsValue(any: Any): DATA?
+    abstract fun <DATA> unwrappedAsValue(target: Any): DATA?
 
-    abstract fun wrappedAsNBTBase(any: Any): Any
+    abstract fun wrappedAsNBTBase(value: Any): Any
 
     companion object {
         @JvmStatic

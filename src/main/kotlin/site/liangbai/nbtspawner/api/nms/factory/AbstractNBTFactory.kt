@@ -60,4 +60,16 @@ abstract class AbstractNBTFactory<USAGE> : Iterable<Pair<USAGE, Any>>{
             }
         }
     }
+
+    override fun toString(): String {
+        return handle.toString()
+    }
+
+    override fun hashCode(): Int {
+        return handle.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return handle == other
+    }
 }
