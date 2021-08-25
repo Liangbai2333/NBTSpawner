@@ -18,13 +18,9 @@
 
 package site.liangbai.nbtspawner.internal.command
 
-import org.bukkit.ChatColor
 import org.bukkit.entity.Player
-import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory.Companion.bindTo
-import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory.Companion.withAutoSave
 import site.liangbai.nbtspawner.util.forEach
 import site.liangbai.nbtspawner.util.readNBT
-import site.liangbai.nbtspawner.util.writeNBT
 import taboolib.common.platform.command.CommandBody
 import taboolib.common.platform.command.CommandHeader
 import taboolib.common.platform.command.mainCommand
@@ -35,16 +31,11 @@ internal object Command {
     @CommandBody
     val main = mainCommand {
         execute<Player> { sender, _, _ ->
-            var nbtFactory = sender.readNBT().withAutoSave().bindTo(sender)
+            val nbtFactory = sender.inventory.itemInMainHand.readNBT()
             nbtFactory.forEach { s, any ->
                 val type = any::class.java.simpleName
                 sender.sendMessage("$s: $any, type: $type")
             }
-
-            sender.sendMessage("${ChatColor.RED} Before set: ${nbtFactory["Health"]}")
-            nbtFactory["Health"] = 20.0F
-            nbtFactory = sender.readNBT()
-            sender.sendMessage("${ChatColor.GREEN} After set and save: ${nbtFactory["Health"]}")
         }
     }
 }

@@ -19,6 +19,8 @@
 package site.liangbai.nbtspawner.api.nms
 
 import net.minecraft.server.v1_16_R3.*
+import org.bukkit.block.Block
+import org.bukkit.craftbukkit.v1_16_R3.CraftWorld
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack
 import org.bukkit.entity.Entity
@@ -39,28 +41,46 @@ class NMSImpl : NMS() {
     @Throws(IllegalStateException::class)
     override fun readEntity(entity: Entity): AbstractNBTFactory<String> {
         val craftEntity = entity as CraftEntity
-        val nbt  = NBTTagCompound().also {
-            if (majorLegacy >= 11200) {
-                craftEntity.handle.save(it)
-            } else if (majorLegacy in 10800..11200) {
-                craftEntity.handle.invokeMethod<Any>("e", it)
-            } else {
-                throw IllegalStateException("unsupported minecraft version $majorLegacy")
+        return findFactory(
+            buildNBT {
+                if (majorLegacy >= 11200) {
+                    craftEntity.handle.save(this)
+                } else if (majorLegacy in 10800..11200) {
+                    craftEntity.handle.invokeMethod<Any>("e", this)
+                } else {
+                    throw IllegalStateException("unsupported minecraft version $majorLegacy")
+                }
             }
-        }
-        return findFactory(nbt)
+        )
     }
 
     @Throws(IllegalArgumentException::class)
     override fun readItemStack(itemStack: ItemStack): AbstractNBTFactory<String> {
-        if (itemStack is CraftItemStack) {
-            val nmsItemStack = itemStack.handle ?: throw IllegalArgumentException("could load NBT from empty item stack")
+        return if (itemStack is CraftItemStack) {
+            val nmsItemStack = itemStack.findHandle() ?: throw IllegalArgumentException("could load NBT from empty item stack")
 
-            return findFactory(nmsItemStack.tag ?: NBTTagCompound())
+            findFactory(nmsItemStack.tag ?: emptyNBT())
         } else {
             val nmsItemStack = CraftItemStack.asNMSCopy(itemStack)
-            return findFactory(nmsItemStack.tag ?: NBTTagCompound())
+            findFactory(nmsItemStack.tag ?: emptyNBT())
         }
+    }
+
+    @Throws(IllegalStateException::class)
+    override fun readBlock(block: Block): AbstractNBTFactory<String>? {
+        val tileEntity = block.asTileEntity() ?: return null
+
+        return findFactory(
+            buildNBT {
+                if (majorLegacy >= 10900) {
+                    tileEntity.save(this)
+                } else if (majorLegacy in 10800..10900) {
+                    tileEntity.invokeMethod<Any>("b", this)
+                } else {
+                    throw IllegalStateException("unsupported minecraft version $majorLegacy")
+                }
+            }
+        )
     }
 
     @Throws(IllegalStateException::class)
@@ -80,7 +100,7 @@ class NMSImpl : NMS() {
 
     override fun writeItemStack(itemStack: ItemStack, nbtFactory: AbstractNBTFactory<String>) {
         if (itemStack is CraftItemStack) {
-            val nmsItemStack = itemStack.handle
+            val nmsItemStack = itemStack.findHandle()
 
             if (nmsItemStack != null) {
                 nmsItemStack.tag = nbtFactory.handle as NBTTagCompound
@@ -90,6 +110,25 @@ class NMSImpl : NMS() {
             nmsItemStack.tag = nbtFactory.handle as NBTTagCompound
             val copiedItemStack = CraftItemStack.asBukkitCopy(nmsItemStack)
             itemStack.setItemMeta(copiedItemStack.itemMeta)
+        }
+    }
+
+    @Throws(IllegalStateException::class)
+    override fun writeBlock(block: Block, nbtFactory: AbstractNBTFactory<String>) {
+        val tileEntity = block.asTileEntity() ?: return
+
+        val nbt = nbtFactory.handle as NBTTagCompound
+
+        tileEntity.also {
+            if (majorLegacy >= 11600) {
+                tileEntity.load(null, nbt)
+            } else if (majorLegacy in 11300..11600) {
+                tileEntity.invokeMethod<Any>("load", nbt)
+            } else if (majorLegacy in 10800..11300) {
+                tileEntity.invokeMethod<Any>("a", nbt)
+            } else {
+                throw IllegalStateException("unsupported minecraft version $majorLegacy")
+            }
         }
     }
 
@@ -162,4 +201,16 @@ class NMSImpl : NMS() {
             else -> throw IllegalStateException("unsupported minecraft version $majorLegacy")
         } }
     }
+
+    private fun buildNBT(builder: NBTTagCompound.() -> Unit) = NBTTagCompound().apply(builder)
+
+    private fun emptyNBT() = NBTTagCompound()
+
+    private fun Block.asTileEntity(): TileEntity? {
+        val craftWorld = world as CraftWorld
+        val nmsWorld = craftWorld.handle
+        return nmsWorld.getTileEntity(BlockPosition(x, y, z))
+    }
+
+    private fun CraftItemStack.findHandle() = getProperty<net.minecraft.server.v1_16_R3.ItemStack>("handle")
 }

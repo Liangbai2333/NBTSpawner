@@ -18,6 +18,7 @@
 
 package site.liangbai.nbtspawner.api.nms
 
+import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
 import site.liangbai.nbtspawner.api.nms.factory.AbstractNBTFactory
@@ -28,9 +29,13 @@ abstract class NMS {
 
     abstract fun readItemStack(itemStack: ItemStack): AbstractNBTFactory<String>
 
+    abstract fun readBlock(block: Block): AbstractNBTFactory<String>?
+
     abstract fun writeEntity(entity: Entity, nbtFactory: AbstractNBTFactory<String>)
 
     abstract fun writeItemStack(itemStack: ItemStack, nbtFactory: AbstractNBTFactory<String>)
+
+    abstract fun writeBlock(block: Block, nbtFactory: AbstractNBTFactory<String>)
 
     abstract fun write(target: Any, nbtFactory: AbstractNBTFactory<String>)
 
