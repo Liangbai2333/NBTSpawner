@@ -16,21 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.liangbai.nbtspawner
+package site.liangbai.nbtspawner.internal.command
 
 import org.bukkit.entity.Player
-import taboolib.common.platform.Plugin
-import taboolib.common.platform.function.console
-import taboolib.common.platform.function.disablePlugin
-import taboolib.module.nms.MinecraftVersion
+import site.liangbai.nbtspawner.util.forEach
+import site.liangbai.nbtspawner.util.readNBT
+import taboolib.common.platform.command.CommandBody
+import taboolib.common.platform.command.CommandHeader
+import taboolib.common.platform.command.mainCommand
 
-class NBTSpawnerPlugin : Plugin() {
-    override fun onLoad() {
-        val player: Player
-
-        if (MinecraftVersion.majorLegacy < 10800 || !MinecraftVersion.isSupported) {
-            console().sendMessage("not-supported")
-            disablePlugin()
+@CommandHeader("test")
+internal object CommandTest {
+    @CommandBody
+    val main = mainCommand {
+        execute<Player> { sender, context, argument ->
+            val nbtFactory = sender.readNBT()
+            nbtFactory.forEach { s, any ->
+                val type = any::class.java.simpleName
+                sender.sendMessage("$s: $any, type: $type")
+            }
         }
     }
 }

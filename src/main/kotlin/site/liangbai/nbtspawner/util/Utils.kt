@@ -18,6 +18,7 @@
 
 package site.liangbai.nbtspawner.util
 
+import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
 import site.liangbai.nbtspawner.api.nms.NMS
@@ -35,10 +36,16 @@ fun Entity.readNBT() = NMS.INSTANCE.readEntity(this)
 
 fun ItemStack.readNBT() = NMS.INSTANCE.readItemStack(this)
 
+fun Block.readNBT() = NMS.INSTANCE.readBlock(this)
+
 fun Entity.writeNBT(factory: AbstractNBTFactory<String>) {
     NMS.INSTANCE.writeEntity(this, factory)
 }
 
 fun ItemStack.writeNBT(factory: AbstractNBTFactory<String>) {
     NMS.INSTANCE.writeItemStack(this, factory)
+}
+
+fun Block.writeNBT(factory: AbstractNBTFactory<String>) {
+    NMS.INSTANCE.writeBlock(this, factory)
 }

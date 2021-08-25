@@ -58,11 +58,18 @@ class NMSImpl : NMS() {
     override fun readItemStack(itemStack: ItemStack): AbstractNBTFactory<String> {
         return if (itemStack is CraftItemStack) {
             val nmsItemStack = itemStack.findHandle() ?: throw IllegalArgumentException("could load NBT from empty item stack")
-
-            findFactory(nmsItemStack.tag ?: emptyNBT())
+            findFactory(
+                buildNBT {
+                    nmsItemStack.save(this)
+                }
+            )
         } else {
             val nmsItemStack = CraftItemStack.asNMSCopy(itemStack)
-            findFactory(nmsItemStack.tag ?: emptyNBT())
+            findFactory(
+                buildNBT {
+                    nmsItemStack.save(this)
+                }
+            )
         }
     }
 
@@ -98,16 +105,24 @@ class NMSImpl : NMS() {
         }
     }
 
+    @Throws(IllegalStateException::class)
     override fun writeItemStack(itemStack: ItemStack, nbtFactory: AbstractNBTFactory<String>) {
+        fun net.minecraft.server.v1_16_R3.ItemStack.load(nbt: NBTTagCompound) {
+            if (majorLegacy >= 11200) {
+                load(nbt)
+            } else if (majorLegacy in 10800..11200) {
+                invokeMethod<Any>("c", nbt)
+            } else {
+                throw IllegalStateException("unsupported minecraft version $majorLegacy")
+            }
+        }
+
         if (itemStack is CraftItemStack) {
             val nmsItemStack = itemStack.findHandle()
-
-            if (nmsItemStack != null) {
-                nmsItemStack.tag = nbtFactory.handle as NBTTagCompound
-            }
+            nmsItemStack?.load(nbtFactory.handle as NBTTagCompound)
         } else {
             val nmsItemStack = CraftItemStack.asNMSCopy(itemStack)
-            nmsItemStack.tag = nbtFactory.handle as NBTTagCompound
+            nmsItemStack.load(nbtFactory.handle as NBTTagCompound)
             val copiedItemStack = CraftItemStack.asBukkitCopy(nmsItemStack)
             itemStack.setItemMeta(copiedItemStack.itemMeta)
         }
