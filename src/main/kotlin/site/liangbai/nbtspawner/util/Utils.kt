@@ -49,3 +49,5 @@ fun ItemStack.writeNBT(factory: AbstractNBTFactory<String>) {
 fun Block.writeNBT(factory: AbstractNBTFactory<String>) {
     NMS.INSTANCE.writeBlock(this, factory)
 }
+
+fun  AbstractNBTFactory<String>.write(target: Any) = NMS.INSTANCE.write(target, this)

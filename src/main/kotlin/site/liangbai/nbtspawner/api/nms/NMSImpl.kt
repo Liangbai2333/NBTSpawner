@@ -116,21 +116,29 @@ class NMSImpl : NMS() {
     }
 
     @Throws(IllegalStateException::class)
-    override fun writeItemStack(itemStack: ItemStack, nbtFactory: AbstractNBTFactory<String>) {
-        fun net.minecraft.server.v1_16_R3.ItemStack.loadOrCopy(nbt: NBTTagCompound): net.minecraft.server.v1_16_R3.ItemStack {
-            if (majorLegacy >= 11600) {
-                return this::class.java.invokeConstructor(nbt)
-            } else if (majorLegacy in 11200..11600) {
-                invokeMethod<Any>("load", nbt)
-            } else if (majorLegacy in 10800..11200) {
-                invokeMethod<Any>("c", nbt)
-            } else {
-                throw IllegalStateException("unsupported minecraft version $majorLegacy")
-            }
-
-            return this
+    private fun net.minecraft.server.v1_16_R3.ItemStack.loadOrCopy(nbt: NBTTagCompound): net.minecraft.server.v1_16_R3.ItemStack {
+        if (majorLegacy >= 11600) {
+            return this::class.java.invokeConstructor(nbt)
+        } else if (majorLegacy in 11200..11600) {
+            invokeMethod<Any>("load", nbt)
+        } else if (majorLegacy in 10800..11200) {
+            invokeMethod<Any>("c", nbt)
+        } else {
+            throw IllegalStateException("unsupported minecraft version $majorLegacy")
         }
 
+        return this
+    }
+
+    private fun ItemStack.copyFrom(other: ItemStack) {
+        type = other.type
+        amount = other.amount
+        data = other.data
+        itemMeta = other.itemMeta
+    }
+
+    @Throws(IllegalStateException::class)
+    override fun writeItemStack(itemStack: ItemStack, nbtFactory: AbstractNBTFactory<String>) {
         if (itemStack is CraftItemStack) {
             val nmsItemStack = itemStack.findHandle()
 
@@ -138,13 +146,13 @@ class NMSImpl : NMS() {
 
             if (loaded != nmsItemStack) {
                 val copiedItemStack = CraftItemStack.asBukkitCopy(loaded)
-                itemStack.itemMeta = copiedItemStack.itemMeta
+                itemStack.copyFrom(copiedItemStack)
             }
         } else {
             var nmsItemStack = CraftItemStack.asNMSCopy(itemStack)
             nmsItemStack = nmsItemStack.loadOrCopy(nbtFactory.handle as NBTTagCompound)
             val copiedItemStack = CraftItemStack.asBukkitCopy(nmsItemStack)
-            itemStack.setItemMeta(copiedItemStack.itemMeta)
+            itemStack.copyFrom(copiedItemStack)
         }
     }
 

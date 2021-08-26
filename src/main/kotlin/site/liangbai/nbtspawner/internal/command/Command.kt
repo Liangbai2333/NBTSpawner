@@ -18,14 +18,13 @@
 
 package site.liangbai.nbtspawner.internal.command
 
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import site.liangbai.nbtspawner.api.nbt.factory.AbstractNBTFactory
 import site.liangbai.nbtspawner.api.nbt.factory.NBTTagFactory
 import site.liangbai.nbtspawner.api.nbt.factory.NBTTagListFactory
-import site.liangbai.nbtspawner.util.cast
-import site.liangbai.nbtspawner.util.findLast
-import site.liangbai.nbtspawner.util.readNBT
-import site.liangbai.nbtspawner.util.writeNBT
+import site.liangbai.nbtspawner.internal.command.Command.commandSet
+import site.liangbai.nbtspawner.util.*
 import taboolib.common.platform.command.*
 import taboolib.module.chat.TellrawJson
 import taboolib.module.chat.colored
@@ -50,32 +49,21 @@ internal object Command {
                     """.trimIndent().colored()
 
         dynamic(optional = true) {
-            literal("set", optional = true) {
-                dynamic {
-                    execute<Player> { sender, context, argument ->
-                        val path = context.argument(-2)!!
-                        val mainFactory = sender.readNBT()
-                        val factory = findSubFactory(mainFactory, path, offset = 1, checkFirst = true)
-                        val attr = path.findLast()
-                        val type = factory[attr]?.javaClass ?: String::class.java
-                        factory[attr] = argument.cast(type)
-                        sender.writeNBT(mainFactory)
-                        sender.sendMessage("&a成功将 &e$path &a设定为: &c$argument".colored())
-                    }
-                }
+            generateSet<Player> { path, argument ->
+                commandSet(readNBT(), this, path, argument)
             }
 
             execute<Player> { sender, _, argument ->
                 val factory = sender.readNBT()
 
-                sender.sendBook(generateNBTInfo(factory, message, argument))
+                sender.sendBook(generateNBTInfoBook(factory, message, argument))
             }
         }
 
         execute<Player> { sender, _, _ ->
             val factory = sender.readNBT()
 
-            sender.sendBook(generateNBTInfo(factory, message))
+            sender.sendBook(generateNBTInfoBook(factory, message))
         }
     }
 
@@ -95,17 +83,22 @@ internal object Command {
                     """.trimIndent().colored()
 
         dynamic(optional = true) {
+            generateSet<Player> { path, argument ->
+                val item = inventory.itemInMainHand
+                commandSet(item.readNBT(), item, path, argument)
+            }
+
             execute<Player> { sender, _, argument ->
                 val factory = sender.inventory.itemInMainHand.readNBT()
 
-                sender.sendBook(generateNBTInfo(factory, message, argument))
+                sender.sendBook(generateNBTInfoBook(factory, message, argument))
             }
         }
 
         execute<Player> { sender, _, _ ->
             val factory = sender.inventory.itemInMainHand.readNBT()
 
-            sender.sendBook(generateNBTInfo(factory, message))
+            sender.sendBook(generateNBTInfoBook(factory, message))
         }
     }
 
@@ -133,6 +126,23 @@ internal object Command {
         }
     }
 
+    private inline fun <reified T> CommandBuilder.CommandComponent.generateSet(crossinline func: T.(String, String) -> Unit) = literal("set", optional = true) {
+        dynamic {
+            execute<T> { sender, context, argument ->
+                sender.func(context.argument(-2)!!, argument)
+            }
+        }
+    }
+
+    private fun CommandSender.commandSet(factory: AbstractNBTFactory<String>, target: Any, path: String, argument: String) {
+        val subFactory = findSubFactory(factory, path, offset = 1, checkFirst = true)
+        val attr = path.findLast()
+        val type = subFactory[attr]?.javaClass ?: String::class.java
+        subFactory[attr] = argument.cast(type)
+        factory.write(target)
+        sendMessage("&a成功将 &e$path &a设定为: &c$argument".colored())
+    }
+
     private fun <USAGE : Any> findSubFactory(mainFactory: AbstractNBTFactory<USAGE>, parser: String, offset: Int = 0, checkFirst: Boolean = false, parseChar: String = "/"): AbstractNBTFactory<USAGE> {
         var factory = mainFactory
 
@@ -154,7 +164,7 @@ internal object Command {
         return factory
     }
 
-    private fun <USAGE : Any> generateNBTInfo(fac: AbstractNBTFactory<USAGE>, introduce: String, parser: String? = null, runCommand: String? = null) = buildBook {
+    private fun <USAGE : Any> generateNBTInfoBook(fac: AbstractNBTFactory<USAGE>, introduce: String, parser: String? = null, runCommand: String? = null) = buildBook {
         write(
             introduce
         )
@@ -186,8 +196,10 @@ internal object Command {
     }
 
     private fun generateNBTDataInfo(name: String, value: Any, runCommand: String? = null): TellrawJson {
+        val type = value.javaClass.simpleName.first().uppercase()
+
         return TellrawJson()
-            .append("&c[&6$name&c]: &c${
+            .append("&${type.lowercase()[0].withColorToken()}[$type] &c[&6$name&c]: &c${
                 when (value) {
                     is NBTTagFactory, is NBTTagListFactory -> "&d鼠标放置后显示"
                     is ByteArray -> value.contentToString()
@@ -203,5 +215,14 @@ internal object Command {
                     .replace("{key}", name)
                 )
             }
+    }
+
+    private fun Char.withColorToken() = when (this) {
+        'i' -> 'a'
+        'f' -> '1'
+        'l' -> '6'
+        's' -> '2'
+        'n', '[', ']' -> '4'
+        else -> this
     }
 }

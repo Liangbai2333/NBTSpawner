@@ -18,7 +18,7 @@ taboolib {
     install("module-nms")
     install("platform-bukkit")
     classifier = null
-    version = "6.0.0-pre61"
+    version = "6.0.0-pre62"
 }
 
 dependencies {
