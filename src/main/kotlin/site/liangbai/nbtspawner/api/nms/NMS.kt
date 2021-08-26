@@ -18,10 +18,11 @@
 
 package site.liangbai.nbtspawner.api.nms
 
+import org.bukkit.OfflinePlayer
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
-import site.liangbai.nbtspawner.api.nms.factory.AbstractNBTFactory
+import site.liangbai.nbtspawner.api.nbt.factory.AbstractNBTFactory
 import taboolib.module.nms.nmsProxy
 
 abstract class NMS {
@@ -30,6 +31,8 @@ abstract class NMS {
     abstract fun readItemStack(itemStack: ItemStack): AbstractNBTFactory<String>
 
     abstract fun readBlock(block: Block): AbstractNBTFactory<String>?
+
+    abstract fun readOfflinePlayer(offlinePlayer: OfflinePlayer): AbstractNBTFactory<String>
 
     abstract fun writeEntity(entity: Entity, nbtFactory: AbstractNBTFactory<String>)
 

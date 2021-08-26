@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.liangbai.nbtspawner.api.nms.factory
+package site.liangbai.nbtspawner.api.nbt.factory
 
 import site.liangbai.nbtspawner.util.unwrappedAsValue
 import site.liangbai.nbtspawner.util.wrappedAsNBTBase

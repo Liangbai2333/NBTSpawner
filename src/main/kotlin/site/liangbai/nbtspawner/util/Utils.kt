@@ -22,7 +22,7 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
 import site.liangbai.nbtspawner.api.nms.NMS
-import site.liangbai.nbtspawner.api.nms.factory.AbstractNBTFactory
+import site.liangbai.nbtspawner.api.nbt.factory.AbstractNBTFactory
 
 fun <USAGE> AbstractNBTFactory<USAGE>.forEach(action: (USAGE, Any) -> Unit) {
     forEach { action(it.first, it.second) }

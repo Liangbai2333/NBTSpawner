@@ -19,10 +19,13 @@
 package site.liangbai.nbtspawner.internal.command
 
 import org.bukkit.entity.Player
-import site.liangbai.nbtspawner.api.nms.factory.AbstractNBTFactory
-import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory
-import site.liangbai.nbtspawner.api.nms.factory.NBTTagListFactory
+import site.liangbai.nbtspawner.api.nbt.factory.AbstractNBTFactory
+import site.liangbai.nbtspawner.api.nbt.factory.NBTTagFactory
+import site.liangbai.nbtspawner.api.nbt.factory.NBTTagListFactory
+import site.liangbai.nbtspawner.util.cast
+import site.liangbai.nbtspawner.util.findLast
 import site.liangbai.nbtspawner.util.readNBT
+import site.liangbai.nbtspawner.util.writeNBT
 import taboolib.common.platform.command.*
 import taboolib.module.chat.TellrawJson
 import taboolib.module.chat.colored
@@ -47,6 +50,21 @@ internal object Command {
                     """.trimIndent().colored()
 
         dynamic(optional = true) {
+            literal("set", optional = true) {
+                dynamic {
+                    execute<Player> { sender, context, argument ->
+                        val path = context.argument(-2)!!
+                        val mainFactory = sender.readNBT()
+                        val factory = findSubFactory(mainFactory, path, offset = 1, checkFirst = true)
+                        val attr = path.findLast()
+                        val type = factory[attr]?.javaClass ?: String::class.java
+                        factory[attr] = argument.cast(type)
+                        sender.writeNBT(mainFactory)
+                        sender.sendMessage("&a成功将 &e$path &a设定为: &c$argument".colored())
+                    }
+                }
+            }
+
             execute<Player> { sender, _, argument ->
                 val factory = sender.readNBT()
 
@@ -115,11 +133,25 @@ internal object Command {
         }
     }
 
-    @CommandBody
-    val internal = subCommand {
-        literal("block") {
+    private fun <USAGE : Any> findSubFactory(mainFactory: AbstractNBTFactory<USAGE>, parser: String, offset: Int = 0, checkFirst: Boolean = false, parseChar: String = "/"): AbstractNBTFactory<USAGE> {
+        var factory = mainFactory
 
+        if (!parser.contains(parseChar) && checkFirst) {
+            return factory
         }
+
+        var paths = parser.split(parseChar).filter { it.isNotEmpty() }
+
+        paths = paths.subList(0, paths.size - offset)
+
+        for (path in paths) {
+            when (factory) {
+                is NBTTagListFactory -> factory = factory.findAs<AbstractNBTFactory<USAGE>>(path.toInt())!!
+                is NBTTagFactory -> factory = factory.findAs<AbstractNBTFactory<USAGE>>(path)!!
+            }
+        }
+
+        return factory
     }
 
     private fun <USAGE : Any> generateNBTInfo(fac: AbstractNBTFactory<USAGE>, introduce: String, parser: String? = null, runCommand: String? = null) = buildBook {
@@ -130,14 +162,7 @@ internal object Command {
         var factory = fac
 
         if (parser != null) {
-            val paths = parser.split("/").filter { it.isNotEmpty() }
-
-            for (path in paths) {
-                when (factory) {
-                    is NBTTagListFactory -> factory = factory.findAs<AbstractNBTFactory<USAGE>>(path.toInt())!!
-                    is NBTTagFactory -> factory = factory.findAs<AbstractNBTFactory<USAGE>>(path)!!
-                }
-            }
+            factory = findSubFactory(factory, parser)
         }
         val keys = factory.keys()
 

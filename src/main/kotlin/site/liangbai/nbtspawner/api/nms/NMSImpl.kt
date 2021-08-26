@@ -19,15 +19,17 @@
 package site.liangbai.nbtspawner.api.nms
 
 import net.minecraft.server.v1_16_R3.*
+import org.bukkit.OfflinePlayer
 import org.bukkit.block.Block
+import org.bukkit.craftbukkit.v1_16_R3.CraftOfflinePlayer
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack
 import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
-import site.liangbai.nbtspawner.api.nms.factory.AbstractNBTFactory
-import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory
-import site.liangbai.nbtspawner.api.nms.factory.NBTTagListFactory
+import site.liangbai.nbtspawner.api.nbt.factory.AbstractNBTFactory
+import site.liangbai.nbtspawner.api.nbt.factory.NBTTagFactory
+import site.liangbai.nbtspawner.api.nbt.factory.NBTTagListFactory
 import taboolib.common.reflect.Reflex.Companion.getProperty
 import taboolib.common.reflect.Reflex.Companion.invokeConstructor
 import taboolib.common.reflect.Reflex.Companion.invokeMethod
@@ -88,6 +90,14 @@ class NMSImpl : NMS() {
                 }
             }
         )
+    }
+
+    override fun readOfflinePlayer(offlinePlayer: OfflinePlayer): AbstractNBTFactory<String> {
+        val craftOfflinePlayer = offlinePlayer as CraftOfflinePlayer
+
+        val nbt = craftOfflinePlayer.invokeMethod<NBTTagCompound>("getData")!!
+
+        return findFactory(nbt)
     }
 
     @Throws(IllegalStateException::class)

@@ -16,8 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.liangbai.nbtspawner.api.nms
+package site.liangbai.nbtspawner.api.nbt
 
-interface Preservable<E> {
-    fun save(value: E)
+interface AutoPreservable<E> : Preservable<E> {
+    fun bindTo(target: E)
+
+    fun save()
 }
