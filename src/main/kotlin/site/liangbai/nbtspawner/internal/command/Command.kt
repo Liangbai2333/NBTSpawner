@@ -19,60 +19,76 @@
 package site.liangbai.nbtspawner.internal.command
 
 import org.bukkit.entity.Player
+import site.liangbai.nbtspawner.api.nms.factory.AbstractNBTFactory
 import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory
 import site.liangbai.nbtspawner.api.nms.factory.NBTTagListFactory
-import site.liangbai.nbtspawner.util.forEach
 import site.liangbai.nbtspawner.util.readNBT
 import taboolib.common.platform.command.*
 import taboolib.module.chat.TellrawJson
 import taboolib.module.chat.colored
+import taboolib.platform.util.buildBook
 import taboolib.platform.util.sendBook
-import java.util.*
 
 @CommandHeader("nbtspawner", aliases = ["nbt", "ns"], permission = "nbtspawner.admin", permissionDefault = PermissionDefault.OP)
 internal object Command {
     @CommandBody
     val me = subCommand {
-        execute<Player> { sender, context, argument ->
-            val factory = sender.readNBT()
-
-            sender.sendBook {
-                write(
-                    """
+        val message = """
                         
                         
                         
-                        &c&l         这里是个人NBT编辑界面
-                        &b&l         请翻页
+                        &c&l 这里是个人NBT编辑界面
+                        
+                        
+                        &b&l        请翻页
                         
                         
                         
                     """.trimIndent().colored()
-                )
 
-                val keys = factory.keys()
+        dynamic(optional = true) {
+            execute<Player> { sender, _, argument ->
+                val factory = sender.readNBT()
 
-                loop@ for (i in keys.indices step 7) {
-                    val message = TellrawJson()
-
-                    for (j in i until i + 7) {
-                        if (j >= keys.size) break@loop
-                        message.also {
-                            val key = keys[j]
-                            val value = factory[key]!!
-                            it.append(generateNBTDataInfo(key, value)).newLine()
-                        }
-                    }
-
-                    write(message)
-                }
+                sender.sendBook(generateNBTInfo(factory, message, argument))
             }
+        }
+
+        execute<Player> { sender, _, _ ->
+            val factory = sender.readNBT()
+
+            sender.sendBook(generateNBTInfo(factory, message))
         }
     }
 
     @CommandBody
     val item = subCommand {
+        val message = """
+                        
+                        
+                        
+                        &c&l这里是手中物品NBT编辑界面
+                        
+                        
+                        &b&l        请翻页
+                        
+                        
+                        
+                    """.trimIndent().colored()
 
+        dynamic(optional = true) {
+            execute<Player> { sender, _, argument ->
+                val factory = sender.inventory.itemInMainHand.readNBT()
+
+                sender.sendBook(generateNBTInfo(factory, message, argument))
+            }
+        }
+
+        execute<Player> { sender, _, _ ->
+            val factory = sender.inventory.itemInMainHand.readNBT()
+
+            sender.sendBook(generateNBTInfo(factory, message))
+        }
     }
 
     @CommandBody
@@ -92,10 +108,59 @@ internal object Command {
 
     @CommandBody
     val player = subCommand {
+        dynamic {
+            execute<Player> { sender, context, argument ->
 
+            }
+        }
     }
 
-    private fun generateNBTDataInfo(name: String, value: Any, parent: String? = null): TellrawJson {
+    @CommandBody
+    val internal = subCommand {
+        literal("block") {
+
+        }
+    }
+
+    private fun <USAGE : Any> generateNBTInfo(fac: AbstractNBTFactory<USAGE>, introduce: String, parser: String? = null, runCommand: String? = null) = buildBook {
+        write(
+            introduce
+        )
+
+        var factory = fac
+
+        if (parser != null) {
+            val paths = parser.split("/").filter { it.isNotEmpty() }
+
+            for (path in paths) {
+                when (factory) {
+                    is NBTTagListFactory -> factory = factory.findAs<AbstractNBTFactory<USAGE>>(path.toInt())!!
+                    is NBTTagFactory -> factory = factory.findAs<AbstractNBTFactory<USAGE>>(path)!!
+                }
+            }
+        }
+        val keys = factory.keys()
+
+        loop@ for (i in keys.indices step 7) {
+            val message = TellrawJson()
+
+            for (j in i until i + 7) {
+                if (j >= keys.size) {
+                    write(message)
+                    break@loop
+                }
+                message.also {
+                    val key = keys[j]
+                    val value = factory[key]!!
+                    it.append(generateNBTDataInfo(key.toString(), value, runCommand)).newLine()
+                }
+            }
+
+            write(message)
+        }
+    }
+
+    private fun generateNBTDataInfo(name: String, value: Any, runCommand: String? = null): TellrawJson {
         return TellrawJson()
             .append("&c[&6$name&c]: &c${
                 when (value) {
@@ -108,5 +173,10 @@ internal object Command {
                 }
             }".colored())
             .hoverText(value.toString())
+            .also {
+                if (runCommand != null) it.runCommand(runCommand
+                    .replace("{key}", name)
+                )
+            }
     }
 }

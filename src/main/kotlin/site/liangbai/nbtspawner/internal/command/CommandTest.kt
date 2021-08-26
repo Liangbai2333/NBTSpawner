@@ -19,8 +19,12 @@
 package site.liangbai.nbtspawner.internal.command
 
 import org.bukkit.entity.Player
+import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory
+import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory.Companion.bindTo
+import site.liangbai.nbtspawner.api.nms.factory.NBTTagFactory.Companion.withAutoSave
 import site.liangbai.nbtspawner.util.forEach
 import site.liangbai.nbtspawner.util.readNBT
+import site.liangbai.nbtspawner.util.writeNBT
 import taboolib.common.platform.command.CommandBody
 import taboolib.common.platform.command.CommandHeader
 import taboolib.common.platform.command.mainCommand
@@ -30,11 +34,14 @@ internal object CommandTest {
     @CommandBody
     val main = mainCommand {
         execute<Player> { sender, context, argument ->
-            val nbtFactory = sender.readNBT()
-            nbtFactory.forEach { s, any ->
-                val type = any::class.java.simpleName
-                sender.sendMessage("$s: $any, type: $type")
-            }
+            val item = sender.inventory.itemInMainHand
+            val nbtFactory = item.readNBT()
+            nbtFactory.findAs<NBTTagFactory>("ForgeCaps")!!.findAs<NBTTagFactory>("Parent")!!["size"] = 30
+            nbtFactory.findAs<NBTTagFactory>("tag")!!.findAs<NBTTagFactory>("magazine")!!["size"] = 30
+            item.writeNBT(nbtFactory)
+            sender.sendMessage(nbtFactory.toString())
+            sender.sendMessage("")
+            sender.sendMessage(item.readNBT().toString())
         }
     }
 }

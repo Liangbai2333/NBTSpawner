@@ -107,22 +107,32 @@ class NMSImpl : NMS() {
 
     @Throws(IllegalStateException::class)
     override fun writeItemStack(itemStack: ItemStack, nbtFactory: AbstractNBTFactory<String>) {
-        fun net.minecraft.server.v1_16_R3.ItemStack.load(nbt: NBTTagCompound) {
-            if (majorLegacy >= 11200) {
-                load(nbt)
+        fun net.minecraft.server.v1_16_R3.ItemStack.loadOrCopy(nbt: NBTTagCompound): net.minecraft.server.v1_16_R3.ItemStack {
+            if (majorLegacy >= 11600) {
+                return this::class.java.invokeConstructor(nbt)
+            } else if (majorLegacy in 11200..11600) {
+                invokeMethod<Any>("load", nbt)
             } else if (majorLegacy in 10800..11200) {
                 invokeMethod<Any>("c", nbt)
             } else {
                 throw IllegalStateException("unsupported minecraft version $majorLegacy")
             }
+
+            return this
         }
 
         if (itemStack is CraftItemStack) {
             val nmsItemStack = itemStack.findHandle()
-            nmsItemStack?.load(nbtFactory.handle as NBTTagCompound)
+
+            val loaded = nmsItemStack?.loadOrCopy(nbtFactory.handle as NBTTagCompound)
+
+            if (loaded != nmsItemStack) {
+                val copiedItemStack = CraftItemStack.asBukkitCopy(loaded)
+                itemStack.itemMeta = copiedItemStack.itemMeta
+            }
         } else {
-            val nmsItemStack = CraftItemStack.asNMSCopy(itemStack)
-            nmsItemStack.load(nbtFactory.handle as NBTTagCompound)
+            var nmsItemStack = CraftItemStack.asNMSCopy(itemStack)
+            nmsItemStack = nmsItemStack.loadOrCopy(nbtFactory.handle as NBTTagCompound)
             val copiedItemStack = CraftItemStack.asBukkitCopy(nmsItemStack)
             itemStack.setItemMeta(copiedItemStack.itemMeta)
         }
@@ -152,6 +162,7 @@ class NMSImpl : NMS() {
         when (target) {
             is Entity -> writeEntity(target, nbtFactory)
             is ItemStack -> writeItemStack(target, nbtFactory)
+            is Block -> writeBlock(target, nbtFactory)
             else -> throw IllegalArgumentException("could not save nbt data to ${target::class.java.simpleName}")
         }
     }

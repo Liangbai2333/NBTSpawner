@@ -39,7 +39,7 @@ class NBTTagListFactory(private val nbtList: Any) : AbstractNBTFactory<Int>() {
     }
 
     override fun keys(): List<Int> {
-        return emptyList()
+        return (0 until list.size).toList()
     }
 
     override fun size(): Int {
